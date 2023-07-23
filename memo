@@ -1,0 +1,39 @@
+openssl rand -base64 1024 | tr -d '\r\n' | cut -c 1-1024 > keyfile
+
+k create secret generic mongo-secret --from-literal=root_username=admin --from-literal=root_password=Passw0rd --from-file=./keyfile --dry-run=client -o yaml > secret.yaml
+
+
+
+k create secret generic mongo-secret \
+--from-literal=root_username=admin \
+--from-literal=root_password=Passw0rd \
+--from-file=./keyfile \
+--dry-run=client -o yaml > secret.yaml
+
+---
+kubectl run mongo-debug -it --rm=true --restart=Never --image=mongo:4.0.0 -- sh
+
+use admin
+
+db.auth("admin","Passw0rd")
+
+rs.initiate({
+  _id: "rs0",
+  members: [
+    { _id: 0, host: "mongo-0.db-svc:27017" },
+    { _id: 1, host: "mongo-1.db-svc:27017" },
+    { _id: 2, host: "mongo-2.db-svc:27017" }
+  ]
+})
+
+rs.status()
+
+---
+m image load blogapp-debug
+minikube image load blogapp:v1.0.0
+sudo rm -rf pv0000/* pv0001/* pv0002/*
+
+---
+k cp . debug:/root/init-db/
+
+kubectl run mongo-debug -it --rm=true --restart=Never --image=weblog-db: -- sh

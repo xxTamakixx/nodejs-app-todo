@@ -1,0 +1,66 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: app-svc
+  labels:
+    app: todoapp
+    type: application
+spec:
+  ports:
+  - port: 3000
+    targetPort: 3000
+  selector:
+    app: todoapp
+    type: application
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nodeapp
+  labels:
+    app: todoapp
+    type: application
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: todoapp
+      type: application
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+    type: RollingUpdate
+  revisionHistoryLimit: 14
+  template:
+    metadata:
+      name: nodeapp
+      labels:
+        app: todoapp
+        type: application
+    spec:
+      containers:
+      - name: node
+        image: todoapp:v2.0.0
+        ports:
+        - containerPort: 3000
+        env:
+        - name: "MONGO_USER"
+          valueFrom:
+            secretKeyRef:
+              name: app-secret
+              key: mongo_user
+        - name: "MONGO_PASSWORD"
+          valueFrom:
+            secretKeyRef:
+              name: app-secret
+              key: mongo_password
+        - name: "MONGO_PATH"
+          valueFrom:
+            secretKeyRef:
+              name: app-secret
+              key: mongo_path
+
+
+
